@@ -7,8 +7,10 @@ services:
       - "1883:1883"   # MQTT (no TLS) - used for demo
       - "9001:9001"   # Websocket (optional)
     volumes:
-      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
-      - ./mosquitto_passwd:/mosquitto/config/password.txt # optional (used by secure conf)
+      # Mount the single config file explicitly to avoid directory/file mount issues on Windows
+      - ./mosquitto.conf/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      # If you later add a password file, mount it explicitly; do NOT mount a directory onto a file path
+      # - ./mosquitto_passwd/password.txt:/mosquitto/config/password.txt
     restart: unless-stopped
 
   # Optional: run a small web dashboard later as a service if you like
