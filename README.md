@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Smart Temperature Sensor — IKT214 Project
 
 Simulation + security assessment of an IoT temperature monitoring system.
@@ -13,3 +14,7 @@ Simulation + security assessment of an IoT temperature monitoring system.
 1. Start broker:
    ```bash
    docker compose up -d
+=======
+# Temp_IoT_Project
+Peekaboo
+>>>>>>> d11e04a788d2479d0bf932fc0ffeac0be8177fca
