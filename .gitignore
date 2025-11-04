@@ -1,0 +1,10 @@
+cat > .gitignore << 'EOF'
+__pycache__/
+*.pyc
+.env
+mosquitto_passwd
+*.pem
+*.key
+.vscode/
+venv/
+EOF

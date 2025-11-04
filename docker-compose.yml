@@ -1,0 +1,18 @@
+version: "3.8"
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: mqtt-broker
+    ports:
+      - "1883:1883"   # MQTT (no TLS) - used for demo
+      - "9001:9001"   # Websocket (optional)
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - ./mosquitto_passwd:/mosquitto/config/password.txt # optional (used by secure conf)
+    restart: unless-stopped
+
+  # Optional: run a small web dashboard later as a service if you like
+  # dashboard:
+  #   build: ./dashboard
+  #   depends_on:
+  #     - mosquitto
