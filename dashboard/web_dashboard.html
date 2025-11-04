@@ -1,0 +1,98 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>MQTT Web Dashboard — Smart Temperature Sensor</title>
+  <style>
+    body { font-family: system-ui, Arial; padding: 1rem; max-width: 900px; margin: auto; }
+    h1 { margin-bottom: 0.2rem; }
+    #status { color: #666; margin-bottom: 1rem; }
+    #messages { border: 1px solid #ddd; padding: 0.5rem; height: 400px; overflow: auto; background:#fafafa; }
+    .msg { padding: 6px; border-bottom: 1px solid #eee; }
+    .topic { font-weight: 600; color: #111; }
+    .payload { color: #333; margin-top: 0.2rem; }
+    .meta { color: #666; font-size: 0.85rem; }
+    #connectForm { margin-bottom: 1rem;}
+    label { margin-right: 0.5rem; }
+    input { padding: 0.25rem; margin-right: 0.5rem; }
+  </style>
+</head>
+<body>
+  <h1>MQTT Web Dashboard</h1>
+  <div id="status">Not connected</div>
+
+  <div id="connectForm">
+    <label>Broker (WebSocket):</label>
+    <input id="broker" value="ws://localhost:9001" size="30"/>
+    <label>Topic:</label>
+    <input id="topic" value="sensors/#" size="20"/>
+    <button id="connectBtn">Connect</button>
+    <button id="disconnectBtn" disabled>Disconnect</button>
+  </div>
+
+  <div id="messages"></div>
+
+  <!-- MQTT.js CDN -->
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <script>
+    const statusEl = document.getElementById('status');
+    const messagesEl = document.getElementById('messages');
+    const connectBtn = document.getElementById('connectBtn');
+    const disconnectBtn = document.getElementById('disconnectBtn');
+    let client = null;
+
+    function addMessage(topic, payload) {
+      const el = document.createElement('div');
+      el.className = 'msg';
+      const t = document.createElement('div');
+      t.className = 'topic';
+      t.textContent = topic;
+      const p = document.createElement('div');
+      p.className = 'payload';
+      p.textContent = payload;
+      const m = document.createElement('div');
+      m.className = 'meta';
+      m.textContent = new Date().toLocaleString();
+      el.appendChild(t);
+      el.appendChild(p);
+      el.appendChild(m);
+      messagesEl.prepend(el);
+    }
+
+    connectBtn.onclick = () => {
+      const broker = document.getElementById('broker').value.trim();
+      const topic = document.getElementById('topic').value.trim() || '#';
+      statusEl.textContent = 'Connecting...';
+      try {
+        client = mqtt.connect(broker);
+        client.on('connect', () => {
+          statusEl.textContent = 'Connected to ' + broker;
+          connectBtn.disabled = true;
+          disconnectBtn.disabled = false;
+          client.subscribe(topic, (err) => {
+            if (err) addMessage('system', 'Subscribe error: ' + err.message);
+            else addMessage('system', 'Subscribed to ' + topic);
+          });
+        });
+        client.on('reconnect', () => statusEl.textContent = 'Reconnecting...');
+        client.on('close', () => statusEl.textContent = 'Disconnected');
+        client.on('error', (e) => statusEl.textContent = 'Error: ' + e.message);
+        client.on('message', (t, payload) => addMessage(t, payload.toString()));
+      } catch (e) {
+        statusEl.textContent = 'Connection failed: ' + e.message;
+      }
+    };
+
+    disconnectBtn.onclick = () => {
+      if (client) {
+        client.end(true, () => {
+          statusEl.textContent = 'Disconnected';
+          connectBtn.disabled = false;
+          disconnectBtn.disabled = true;
+        });
+      }
+    };
+  </script>
+</body>
+</html>
+</details>
