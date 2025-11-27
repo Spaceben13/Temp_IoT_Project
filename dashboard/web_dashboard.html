@@ -22,12 +22,24 @@
   <div id="status">Not connected</div>
 
   <div id="connectForm">
-    <label>Broker (WebSocket):</label>
-    <input id="broker" value="ws://localhost:9001" size="30"/>
-    <label>Topic:</label>
-    <input id="topic" value="sensors/#" size="20"/>
-    <button id="connectBtn">Connect</button>
-    <button id="disconnectBtn" disabled>Disconnect</button>
+    <div style="margin-bottom: 0.5rem;">
+      <label>Broker (WebSocket):</label>
+      <input id="broker" value="ws://localhost:9001" size="30"/>
+    </div>
+    <div style="margin-bottom: 0.5rem;">
+      <label>Topic:</label>
+      <input id="topic" value="sensors/#" size="20"/>
+    </div>
+    <div style="margin-bottom: 0.5rem;">
+      <label>Username (tom for usikker versjon):</label>
+      <input id="username" type="text" placeholder="user" size="15"/>
+      <label>Password:</label>
+      <input id="password" type="password" placeholder="123456" size="15"/>
+    </div>
+    <div>
+      <button id="connectBtn">Connect</button>
+      <button id="disconnectBtn" disabled>Disconnect</button>
+    </div>
   </div>
 
   <div id="messages"></div>
@@ -62,11 +74,22 @@
     connectBtn.onclick = () => {
       const broker = document.getElementById('broker').value.trim();
       const topic = document.getElementById('topic').value.trim() || '#';
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      
       statusEl.textContent = 'Connecting...';
       try {
-        client = mqtt.connect(broker);
+        // Konfigurer connect-options med autentisering hvis oppgitt
+        const options = {};
+        if (username && password) {
+          options.username = username;
+          options.password = password;
+        }
+        
+        client = mqtt.connect(broker, options);
         client.on('connect', () => {
-          statusEl.textContent = 'Connected to ' + broker;
+          const authInfo = username ? ` (authenticated as ${username})` : ' (no authentication)';
+          statusEl.textContent = 'Connected to ' + broker + authInfo;
           connectBtn.disabled = true;
           disconnectBtn.disabled = false;
           client.subscribe(topic, (err) => {
@@ -76,10 +99,14 @@
         });
         client.on('reconnect', () => statusEl.textContent = 'Reconnecting...');
         client.on('close', () => statusEl.textContent = 'Disconnected');
-        client.on('error', (e) => statusEl.textContent = 'Error: ' + e.message);
+        client.on('error', (e) => {
+          statusEl.textContent = 'Error: ' + e.message;
+          addMessage('system', 'Connection error: ' + e.message);
+        });
         client.on('message', (t, payload) => addMessage(t, payload.toString()));
       } catch (e) {
         statusEl.textContent = 'Connection failed: ' + e.message;
+        addMessage('system', 'Connection failed: ' + e.message);
       }
     };
 

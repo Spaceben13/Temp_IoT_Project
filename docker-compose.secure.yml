@@ -1,0 +1,14 @@
+version: "3.8"
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: mqtt-broker
+    ports:
+      - "1883:1883"   # MQTT (med autentisering)
+      - "9001:9001"   # Websocket (optional)
+    volumes:
+      # Sikker konfigurasjon (krever brukernavn/passord)
+      - ./mosquitto.conf/mosquitto_secure.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./mosquitto.conf/password.txt:/mosquitto/config/password.txt:ro
+    restart: unless-stopped
+
