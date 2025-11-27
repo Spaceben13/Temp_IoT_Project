@@ -6,8 +6,37 @@ Simulation + security assessment of an IoT temperature monitoring system.
 - MQTT broker (Eclipse Mosquitto)
 - Sensor simulator (publishes JSON temperature readings)
 - Dashboard (subscriber prints readings)
-- Attacker (publishes forged readings to demonstrate integrity issues)
-- Secure variant: sensor connects using username/password
+- Attacker script (demonstrates security vulnerabilities)
+- Two versions: **Insecure** (no authentication) and **Secure** (with authentication)
+
+## Quick Comparison: Insecure vs Secure
+
+| Feature | Insecure Version | Secure Version |
+|---------|-----------------|----------------|
+| Authentication | ❌ None (anyone can connect) | ✅ Username/password required |
+| Attacker Script | ✅ Works (can inject fake data) | ❌ Blocked (connection refused) |
+| Use Case | Demonstrates vulnerabilities | Demonstrates security |
+
+**Key Demonstration:**
+- **Insecure**: Run `python attacker/attacker.py` → Attack succeeds
+- **Secure**: Run `python attacker/attacker.py` → Attack fails (blocked)
+
+## Quick Start Guide
+
+### Complete Test Scenario: Insecure → Secure
+
+**Test 1: Insecure Version (Vulnerable)**
+1. Start insecure broker: `docker-compose -f docker-compose.insecure.yml up -d`
+2. Run sensor: `python sensor/sensor.py`
+3. Run dashboard: `python dashboard/dashboard.py --username "" --password ""`
+4. Run attacker: `python attacker/attacker.py` → **SUCCESS** (attack works!)
+
+**Test 2: Secure Version (Protected)**
+1. Stop insecure: `docker-compose -f docker-compose.insecure.yml down`
+2. Start secure broker: `docker-compose -f docker-compose.secure.yml up -d`
+3. Run secure sensor: `python sensor/secure_sensor.py` (use: user/123456)
+4. Run dashboard: `python dashboard/dashboard.py` (use: user/123456)
+5. Run attacker: `python attacker/attacker.py` → **BLOCKED** (attack fails!)
 
 ## Prerequisites
 
@@ -52,13 +81,27 @@ python dashboard/dashboard.py --username "" --password ""
 
 You should see temperature readings appearing in the dashboard.
 
-#### Step 4: (Optional) Demonstrate Attack
+#### Step 4: Demonstrate Attack (Shows Vulnerability)
 In a third terminal, run the attacker script to inject fake data:
 ```bash
 python attacker/attacker.py
 ```
 
-This demonstrates how an attacker can inject malicious data when authentication is disabled.
+**What happens:**
+- The attacker script successfully connects (no authentication required)
+- It publishes fake temperature data:
+  - Low temperature (15.0°C) to hide overheating
+  - High temperature spike (90.0°C) to create false alarms
+- You will see these fake readings appear in your dashboard
+- This demonstrates the **data injection/forgery vulnerability**
+
+**Expected output:**
+```
+[ATTACK] Sent fake low: {'device_id': 'sensor_demo_1', 'timestamp': ..., 'temperature': 15.0}
+[ATTACK] Sent fake spike: {'device_id': 'sensor_demo_1', 'timestamp': ..., 'temperature': 90.0}
+```
+
+**In the dashboard**, you will see both real sensor data and fake attacker data mixed together, showing how an attacker can manipulate the system.
 
 #### Stop the Broker
 ```bash
@@ -106,6 +149,26 @@ Or provide credentials directly:
 ```bash
 python dashboard/dashboard.py --username user --password 123456
 ```
+
+#### Step 4: Test Security (Attacker Blocked)
+In a third terminal, try to run the attacker script:
+```bash
+python attacker/attacker.py
+```
+
+**What happens:**
+- The attacker script tries to connect without authentication
+- Connection is **rejected**: `Client attacker_sim disconnected, not authorised`
+- The attacker **cannot** publish fake data
+- This demonstrates that authentication **prevents** the attack
+
+**Expected output in broker logs:**
+```
+Sending CONNACK to attacker_sim (0, 5)
+Client attacker_sim disconnected, not authorised.
+```
+
+**In contrast to insecure version:** The secure version successfully blocks unauthorized access attempts.
 
 #### Stop the Broker
 ```bash

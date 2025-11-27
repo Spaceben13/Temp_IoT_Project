@@ -72,12 +72,21 @@
     }
 
     connectBtn.onclick = () => {
+      // Disconnect existing client if any before connecting
+      if (client) {
+        client.end(true);
+        client.removeAllListeners();
+        client = null;
+      }
+      
       const broker = document.getElementById('broker').value.trim();
       const topic = document.getElementById('topic').value.trim() || '#';
       const username = document.getElementById('username').value.trim();
       const password = document.getElementById('password').value;
       
       statusEl.textContent = 'Connecting...';
+      connectBtn.disabled = true;
+      
       try {
         // Konfigurer connect-options med autentisering hvis oppgitt
         const options = {};
@@ -87,39 +96,62 @@
         }
         
         client = mqtt.connect(broker, options);
+        
         client.on('connect', () => {
           const authInfo = username ? ` (authenticated as ${username})` : ' (no authentication)';
           statusEl.textContent = 'Connected to ' + broker + authInfo;
           connectBtn.disabled = true;
           disconnectBtn.disabled = false;
           client.subscribe(topic, (err) => {
-            if (err) addMessage('system', 'Subscribe error: ' + err.message);
-            else addMessage('system', 'Subscribed to ' + topic);
+            if (err) {
+              addMessage('system', 'Subscribe error: ' + err.message);
+            } else {
+              addMessage('system', 'Subscribed to ' + topic);
+            }
           });
         });
-        client.on('reconnect', () => statusEl.textContent = 'Reconnecting...');
-        client.on('close', () => statusEl.textContent = 'Disconnected');
+        
+        client.on('reconnect', () => {
+          statusEl.textContent = 'Reconnecting...';
+        });
+        
+        client.on('close', () => {
+          statusEl.textContent = 'Disconnected';
+          connectBtn.disabled = false;
+          disconnectBtn.disabled = true;
+        });
+        
         client.on('error', (e) => {
           statusEl.textContent = 'Error: ' + e.message;
           addMessage('system', 'Connection error: ' + e.message);
+          connectBtn.disabled = false;
+          disconnectBtn.disabled = true;
         });
-        client.on('message', (t, payload) => addMessage(t, payload.toString()));
+        
+        client.on('message', (t, payload) => {
+          addMessage(t, payload.toString());
+        });
       } catch (e) {
         statusEl.textContent = 'Connection failed: ' + e.message;
         addMessage('system', 'Connection failed: ' + e.message);
+        connectBtn.disabled = false;
+        disconnectBtn.disabled = true;
+        client = null;
       }
     };
 
     disconnectBtn.onclick = () => {
       if (client) {
-        client.end(true, () => {
-          statusEl.textContent = 'Disconnected';
-          connectBtn.disabled = false;
-          disconnectBtn.disabled = true;
-        });
+        client.end(true);
+        client.removeAllListeners();
+        client = null;
+        statusEl.textContent = 'Disconnected';
+        connectBtn.disabled = false;
+        disconnectBtn.disabled = true;
       }
     };
   </script>
 </body>
 </html>
+</details>
 </details>
